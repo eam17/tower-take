@@ -1,10 +1,12 @@
 package com.example.myapplication;
 
 import android.Manifest;
-import android.content.Intent;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
@@ -32,11 +34,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.concurrent.Callable;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleMap.OnMapLongClickListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnCircleClickListener {
 
     public static GoogleMap mMap;
+    public static LatLng currentLocation;
+    public static Marker mrkUser;
+    public static Circle cirUser;
+    public static boolean freelook = false;
 
     HashMap<Marker, Integer> mapMarkers;
     HashMap<Marker, Circle> mapCircle;
@@ -113,8 +118,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap.setOnMapLongClickListener(this);
         mMap.setOnMarkerClickListener(this);
         mMap.setOnCircleClickListener(this);
+        mMap.setMinZoomPreference(14);
+        mMap.moveCamera(CameraUpdateFactory.zoomTo(14));
+        mMap.getUiSettings().setAllGesturesEnabled(false);
+        mMap.getUiSettings().setZoomControlsEnabled(true);
 
-        //mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+        LocationManager locationManager = (LocationManager)
+                getSystemService(Context.LOCATION_SERVICE);
+        LocationListener locationListener = new CameraFollower();
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        locationManager.requestLocationUpdates(locationManager.GPS_PROVIDER, (long) 2500, 5f, locationListener);
+
+        mrkUser = mMap.addMarker(new MarkerOptions().title("You").position(new LatLng(0, 0)));
+        cirUser = mMap.addCircle(new CircleOptions().radius(100).strokeColor(Color.BLACK).fillColor(Color.argb(100, 0, 255, 255)).center(new LatLng(0, 0)));
 
         //Build sql prepared statement
         String strStatement = "select * from fort f join account a on f.idaccount = a.id";
@@ -144,7 +169,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 .center(latlng)
                                 .radius(100)
                                 .strokeColor(Color.BLACK)
-                                .fillColor(Color.BLUE));
+                                .fillColor(Color.argb(100, 0, 0, 255)));
                         mapCircle.put(m, c);
                     } else {
 
@@ -158,7 +183,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 .center(latlng)
                                 .radius(100)
                                 .strokeColor(Color.BLACK)
-                                .fillColor(Color.RED));
+                                .fillColor(Color.argb(100, 255, 0, 0)));
                         mapCircle.put(m, c);
                     }
 
@@ -187,30 +212,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         return strTowerOwner;
     }
 
-    private void getDeviceLocation() {
-
-        FusedLocationProviderClient myFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
-        try {
-            if (/*mLocationPermissionGranted*/ true) {
-                Task location = myFusedLocationProviderClient.getLastLocation();
-                location.addOnCompleteListener(new OnCompleteListener() {
-                    @Override
-                    public void onComplete(@NonNull Task task) {
-                        if (task.isSuccessful()) {
-                            Location currentLocation = (Location)task.getResult();
-                            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude()), Settings.DEFAULT_ZOOM));
-                            mMap.addMarker(new MarkerOptions().position(new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude())).title("You"));
-                        }
-                    }
-                });
-            }
-        } catch (SecurityException e) {
-
-        }
-    }
-
     @Override
     public void onMapLongClick(LatLng latlng) {
+        if (getDistance(latlng, currentLocation) < 100) {
+
+            Toast.makeText(this, "Too far reach!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         //Build sql prepared statement
         String strStatement = "select lat, long, power(lat - ?, 2) + power(long - ?, 2) as diff from fort order by diff";
 
@@ -250,12 +259,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         strStatement = "insert into fort (lat, long, idaccount, iditem) values (?, ?, ?, ?)";
         try {
-            PreparedStatement psInsert = Settings.getInstance().getConnection().prepareStatement(strStatement);
+            PreparedStatement psInsert = Settings.getInstance().getConnection().prepareStatement(strStatement, new String[]{"id"});
             psInsert.setDouble(1, latlng.latitude);
             psInsert.setDouble(2, latlng.longitude);
             psInsert.setInt(3, Settings.userid);
             psInsert.setInt(4, 1);
-            psInsert.execute();
+            psInsert.executeUpdate();
 
 
             //TODO: check result code to make sure it went through
@@ -263,7 +272,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             int towerid = -1;
             try (ResultSet generatedKeys = psInsert.getGeneratedKeys()) {
                 if (generatedKeys.next()) {
-                    towerid = (generatedKeys.getInt(1));
+                    towerid = (generatedKeys.getInt("id"));
                 }
                 else {
                     throw new SQLException("Creating user failed, no ID obtained.");
@@ -271,7 +280,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
             psInsert.close();
-            Toast.makeText(getApplicationContext(), "Fort successfully created.", Toast.LENGTH_LONG).show();
+            Toast.makeText(getApplicationContext(), "Fort created.", Toast.LENGTH_LONG).show();
 
             Marker m = mMap.addMarker(new MarkerOptions()
                     .position(latlng)
@@ -283,7 +292,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     .center(latlng)
                     .radius(100)
                     .strokeColor(Color.BLACK)
-                    .fillColor(Color.BLUE));
+                    .fillColor(Color.argb(100, 0, 0, 255)));
             mapCircle.put(m, c);
 
         } catch (ClassNotFoundException e) {
@@ -306,6 +315,11 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public boolean onMarkerClick(Marker marker) {
+
+        if (getDistance(marker.getPosition(), currentLocation) < 100) {
+            Toast.makeText(this, "Too far reach!", Toast.LENGTH_SHORT).show();
+            return false;
+        }
 
         int towerid = mapMarkers.get(marker);
         if (towerid < 0) {
