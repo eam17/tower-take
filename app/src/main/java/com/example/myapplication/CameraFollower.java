@@ -4,16 +4,14 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLng;
 
-import static com.example.myapplication.MapsActivity.cirUser;
-import static com.example.myapplication.MapsActivity.currentLocation;
-import static com.example.myapplication.MapsActivity.mMap;
-import static com.example.myapplication.MapsActivity.mrkUser;
+import static com.example.myapplication.MapsHolder.cirUser;
+import static com.example.myapplication.MapsHolder.currentLocation;
+import static com.example.myapplication.MapsHolder.freelook;
+import static com.example.myapplication.MapsHolder.mMap;
+import static com.example.myapplication.MapsHolder.mrkUser;
 
 public class CameraFollower implements LocationListener {
 
@@ -21,7 +19,9 @@ public class CameraFollower implements LocationListener {
     public void onLocationChanged(Location loc) {
 
         currentLocation = new LatLng(loc.getLatitude(), loc.getLongitude());
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
+        if (!freelook) {
+            mMap.moveCamera(CameraUpdateFactory.newLatLng(currentLocation));
+        }
         mrkUser.setPosition(currentLocation);
         cirUser.setCenter(currentLocation);
     }
