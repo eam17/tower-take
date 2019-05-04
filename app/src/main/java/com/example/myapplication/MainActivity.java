@@ -1,11 +1,19 @@
 package com.example.myapplication;
 
+import android.animation.Animator;
 import android.content.Intent;
+import android.os.CountDownTimer;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewPropertyAnimator;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import java.nio.charset.StandardCharsets;
@@ -15,21 +23,38 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import static android.view.View.VISIBLE;
+
 public class MainActivity extends AppCompatActivity {
 
-    private TextView txtUsername;
-    private TextView txtPassword;
+    private android.support.design.widget.TextInputEditText txtUsername;
+    private android.support.design.widget.TextInputEditText txtPassword;
+
+    private ImageView iconImageView;
+    private RelativeLayout rootView, afterAnimationView;
+    private String TAG = "MainActivity";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        //Full screen
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
         setContentView(R.layout.activity_main);
 
         //Find and initialize layout
-        txtUsername = (TextView)findViewById(R.id.txtUsername);
-        txtPassword = (TextView)findViewById(R.id.txtPassword);
+        txtUsername = findViewById(R.id.txtUsername);
+        txtPassword = findViewById(R.id.txtPassword);
 
-        Button btnLogin = (Button)findViewById(R.id.btnLogin);
+        iconImageView = findViewById(R.id.iconImageView);
+        rootView = findViewById(R.id.rootView);
+        afterAnimationView = findViewById(R.id.afterAnimationView);
+
+        Button btnLogin = findViewById(R.id.btnLogin);
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -74,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button btnRegister = (Button)findViewById(R.id.btnRegister);
+        Button btnRegister = findViewById(R.id.btnRegister);
         btnRegister.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -114,7 +139,24 @@ public class MainActivity extends AppCompatActivity {
                 Log.v(this.getClass().toString(), "Register complete.");
             }
         });
-    }
+
+        //Time until main login screen shows up
+        new CountDownTimer(1000, 1000) {
+
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+
+            }
+
+            @Override
+            public void onFinish() {
+                startAnimation();
+            }
+        }.start();
+
+
+    }//End OnCreate
 
     static String hash(String str) {
         try {
@@ -131,4 +173,36 @@ public class MainActivity extends AppCompatActivity {
             throw new IllegalStateException(e);
         }
     }
+
+    private void startAnimation() {
+        ViewPropertyAnimator viewPropertyAnimator = iconImageView.animate();
+        viewPropertyAnimator.x(50f);
+        viewPropertyAnimator.y(100f);
+        viewPropertyAnimator.setDuration(1000);
+        viewPropertyAnimator.setListener(new Animator.AnimatorListener() {
+            @Override
+            public void onAnimationStart(Animator animation) {
+            }
+
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                iconImageView.setImageResource(R.drawable.tower_gray);
+                rootView.setBackgroundColor(ContextCompat.getColor(MainActivity.this, R.color.colorSplashText));
+                afterAnimationView.setVisibility(VISIBLE);
+            }
+
+            @Override
+            public void onAnimationCancel(Animator animation) {
+
+            }
+
+            @Override
+            public void onAnimationRepeat(Animator animation) {
+
+            }
+        });
+    }
+
+
+
 }
