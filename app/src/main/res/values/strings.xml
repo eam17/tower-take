@@ -7,7 +7,7 @@
     <string name="register">Register</string>
     <string name="google_maps_key">AIzaSyBqKIojKs0rGIjYGM3e7kN_xD72mYqpjrI</string>
     <string name="title_activity_maps_holder">MapsHolder</string>
-    <string name="title_activity_tower_taker">TowerTaker</string>
+    <string name="title_activity_tower_taker">Tower Taker</string>
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
     <string name="nav_header_title">Tower Taker</string>
