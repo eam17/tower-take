@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
                         int id = rsSelect.getInt("id");
                         if (id != -1) {
                             //If result exists, login
-                            Intent intent = new Intent(v.getContext(), com.example.myapplication.MapsHolder.class);
+                            Intent intent = new Intent(v.getContext(), com.example.myapplication.TowerTaker.class);
                             Settings.userid = id;
                             intent.putExtra("id", id);
                             startActivity(intent);

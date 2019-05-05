@@ -7,11 +7,11 @@ import android.os.Bundle;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLng;
 
-import static com.example.myapplication.MapsHolder.cirUser;
-import static com.example.myapplication.MapsHolder.currentLocation;
-import static com.example.myapplication.MapsHolder.freelook;
-import static com.example.myapplication.MapsHolder.mMap;
-import static com.example.myapplication.MapsHolder.mrkUser;
+import static com.example.myapplication.TowerTaker.cirUser;
+import static com.example.myapplication.TowerTaker.currentLocation;
+import static com.example.myapplication.TowerTaker.freelook;
+import static com.example.myapplication.TowerTaker.mMap;
+import static com.example.myapplication.TowerTaker.mrkUser;
 
 public class CameraFollower implements LocationListener {
 

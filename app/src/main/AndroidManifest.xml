@@ -22,10 +22,6 @@
             android:name=".TowerTaker"
             android:label="@string/title_activity_tower_taker"
             android:theme="@style/AppTheme.NoActionBar"></activity>
-        <activity
-            android:name=".MapsHolder"
-            android:label="@string/title_activity_maps_holder"
-            android:theme="@style/AppTheme.NoActionBar" />
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").
