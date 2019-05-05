@@ -239,6 +239,7 @@ public class TowerTaker extends AppCompatActivity
             Log.v(this.getClass().toString(), "Forts loaded");
 
             getPoints();
+            getTowerCount();
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (SQLException e) {
@@ -338,7 +339,8 @@ public class TowerTaker extends AppCompatActivity
                     .fillColor(Color.argb(100, 0, 0, 255)));
             mapCircle.put(m, c);
 
-            addPoints(-1);
+            getTowerCount();
+            addPoints(-2);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (SQLException e) {
@@ -386,6 +388,7 @@ public class TowerTaker extends AppCompatActivity
             psUpdate.executeUpdate();
 
             addPoints(-1);
+            getTowerCount();
 
             marker.setTitle("Your tower");
             mapCircle.get(marker).setFillColor(Color.BLUE);
@@ -495,5 +498,24 @@ public class TowerTaker extends AppCompatActivity
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    public int getTowerCount() throws SQLException, ClassNotFoundException {
+        //Build sql prepared statement
+        String strStatement = "select count(id) as towers from fort f where ? = f.idaccount";
+        PreparedStatement psSelect = Settings.getInstance().getConnection().prepareStatement(strStatement);
+        psSelect.setInt(1, Settings.userid);
+        psSelect.execute();
+
+        //Get sql results
+        ResultSet rsSelect = psSelect.getResultSet();
+        if (rsSelect.next()) {
+
+            int towers = rsSelect.getInt("towers");
+            miTowers.setTitle(towers + " towers!");
+            return towers;
+        }
+        miTowers.setTitle(0 + " towers!");
+        return 0;
     }
 }
