@@ -49,24 +49,37 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 
+/*
+Program: Tower Taker
+Programmers: Kat Molostvova & Weston Laity
+Date: 6 May 2019
+Desc: Tower Taker is a real world game that has you on the move to score more points. Place towers and keep them until the end of the day and you'll be rewarded.
+        Take towers from others, and make sure they don't swipe them back. Continue the charge day after day to amass an empire.
+ */
+
 public class TowerTaker extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, OnMapReadyCallback, GoogleMap.OnMapLongClickListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnCircleClickListener {
 
+    //Map
     public static GoogleMap mMap;
+
+    //User location
     public static LatLng currentLocation;
     public static Marker mrkUser;
     public static Circle cirUser;
-    public static boolean freelook = false;
 
+    //Keeping track
     HashMap<Marker, Integer> mapMarkers;
     HashMap<Marker, Circle> mapCircle;
 
+    //Permissions
     private static final String FINE_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
     private static final String COARSE_LOCATION = Manifest.permission.ACCESS_COARSE_LOCATION;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1234;
-    private boolean mLocationPermissionGranted;
 
+    //UI Items
     public static MenuItem chkCamLock;
+    public static boolean freelook = false;
     public static MenuItem miPoints;
     public static MenuItem miTowers;
 
@@ -85,11 +98,13 @@ public class TowerTaker extends AppCompatActivity
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
 
+        //Left side nav menu assignments
         NavigationView nav = (NavigationView) findViewById(R.id.nav_view);
         Menu menu = nav.getMenu();
         miPoints = menu.findItem(R.id.nav_points);
         miTowers = menu.findItem(R.id.nav_towers);
 
+        //Initialize lists for linking
         mapMarkers = new HashMap<Marker, Integer>();
         mapCircle = new HashMap<Marker, Circle>();
 
@@ -110,7 +125,6 @@ public class TowerTaker extends AppCompatActivity
 
         if (ContextCompat.checkSelfPermission(this.getApplicationContext(), FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             if (ContextCompat.checkSelfPermission(this.getApplicationContext(), COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                mLocationPermissionGranted = true;
                 initMap();
             } else {
                 ActivityCompat.requestPermissions(this, permissions, LOCATION_PERMISSION_REQUEST_CODE);
@@ -123,59 +137,44 @@ public class TowerTaker extends AppCompatActivity
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        mLocationPermissionGranted = false;
         switch (requestCode) {
             case LOCATION_PERMISSION_REQUEST_CODE: {
                 for (int i = 0; i < grantResults.length; i++) {
                     if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
-                        mLocationPermissionGranted = false;
                         return;
                     }
                 }
-                mLocationPermissionGranted = true;
                 initMap();
             }
         }
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         mMap.setOnMapLongClickListener(this);
         mMap.setOnMarkerClickListener(this);
         mMap.setOnCircleClickListener(this);
+
+        //Disable scrolling until user selects freelook
         mMap.setMinZoomPreference(14);
         mMap.moveCamera(CameraUpdateFactory.zoomTo(14));
         mMap.getUiSettings().setAllGesturesEnabled(false);
         mMap.getUiSettings().setZoomControlsEnabled(true);
 
-        LocationManager locationManager = (LocationManager)
-                getSystemService(Context.LOCATION_SERVICE);
+        //Get location
+        LocationManager locationManager = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
         LocationListener locationListener = new CameraFollower();
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return;
         }
         locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, (long) 2500, 5f, locationListener);
 
+        //Add user's marker to the map
         mrkUser = mMap.addMarker(new MarkerOptions().title("You").position(new LatLng(0, 0)));
         cirUser = mMap.addCircle(new CircleOptions().radius(100).strokeColor(Color.BLACK).fillColor(Color.argb(100, 0, 255, 255)).center(new LatLng(0, 0)));
 
+        //Populate the map with other user's towers
         //Build sql prepared statement
         String strStatement = "select * from fort f join account a on f.idaccount = a.id";
         try {
@@ -194,6 +193,7 @@ public class TowerTaker extends AppCompatActivity
                     String strName = rsSelect.getString("username");
                     int towerid = rsSelect.getInt("id");
                     if (id == Settings.userid) {
+                        //Friendly tower
                         Marker m = mMap.addMarker(new MarkerOptions()
                                 .position(latlng)
                                 .title("Your tower")
@@ -208,6 +208,7 @@ public class TowerTaker extends AppCompatActivity
                         mapCircle.put(m, c);
                     } else {
 
+                        //Enemy towers
                         Marker m = mMap.addMarker(new MarkerOptions()
                                 .position(latlng)
                                 .title(formatTowerName(strName))
@@ -222,8 +223,6 @@ public class TowerTaker extends AppCompatActivity
                         mapCircle.put(m, c);
                     }
 
-                } else {
-                    //Not a valid user
                 }
             }
             rsSelect.close();
@@ -231,6 +230,7 @@ public class TowerTaker extends AppCompatActivity
 
             Log.v(this.getClass().toString(), "Forts loaded");
 
+            //Populate UI
             getPoints();
             getTowerCount();
         } catch (ClassNotFoundException e) {
@@ -241,6 +241,7 @@ public class TowerTaker extends AppCompatActivity
     }
 
     private static String formatTowerName(String strTowerOwner) {
+        //Formatter for apostraphe s
         if (strTowerOwner.endsWith("s")) {
             strTowerOwner += "'";
         } else {
@@ -252,12 +253,14 @@ public class TowerTaker extends AppCompatActivity
 
     @Override
     public void onMapLongClick(LatLng latlng) {
-        if (getDistance(latlng, currentLocation) > 100) {
+        //This action attempts to places a tower
 
+        if (getDistance(latlng, currentLocation) > 100) {
             Toast.makeText(this, "Too far reach!", Toast.LENGTH_SHORT).show();
             return;
         }
 
+        //Is the closest tower too close to this location?
         //Build sql prepared statement
         String strStatement = "select lat, long, power(lat - ?, 2) + power(long - ?, 2) as diff from fort order by diff";
 
@@ -274,19 +277,14 @@ public class TowerTaker extends AppCompatActivity
                 LatLng closest = new LatLng(rsSelect.getDouble("lat"), rsSelect.getDouble("long"));
                 Log.d("", "onMapLongClick: The distance between these points is " + getDistance(latlng, closest));
                 if (getDistance(latlng, closest) < 200) {
-
                     Toast.makeText(this, "Too close to another tower!", Toast.LENGTH_SHORT).show();
                     return;
                 }
 
 
-            } else {
-                Log.d("", "onMapLongClick: I found nothing lol");
             }
             rsSelect.close();
             psSelect.close();
-
-            Log.v(this.getClass().toString(), "Forts loaded");
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
             Log.d("", "onMapLongClick: " + e.toString());
@@ -355,34 +353,41 @@ public class TowerTaker extends AppCompatActivity
     @Override
     public boolean onMarkerClick(Marker marker) {
 
+        //Take enemy tower
+        int towerid = -1;
+        if (mapMarkers.get(marker) == null || (towerid = mapMarkers.get(marker)) < 0) {
+            Log.d("", "onMarkerClick: Not valid tower " + towerid);
+            return false;
+        }
+
         chkCamLock.setChecked(false);
         setFreelook(true);
 
+        //If the marker/tower is within reach
         if (getDistance(marker.getPosition(), currentLocation) > 100) {
             Toast.makeText(this, "Too far reach!", Toast.LENGTH_SHORT).show();
             return false;
         }
 
-        int towerid = mapMarkers.get(marker);
-        if (towerid < 0) {
-            Log.d("", "onMarkerClick: Not valid tower " + towerid);
-        }
-
+        //If they have points, take the tower
         try {
             int points = getPoints();
             if (points <= 0) {
                 return false;
             }
 
+            //update for ownership
             String strStatement = "update fort set idaccount = ? where id = ?";
             PreparedStatement psUpdate = Settings.getInstance().getConnection().prepareStatement(strStatement);
             psUpdate.setInt(1, Settings.userid);
             psUpdate.setInt(2, towerid);
             psUpdate.executeUpdate();
 
+            //update points and ui
             addPoints(-1);
             getTowerCount();
 
+            //update tower marker
             marker.setTitle("Your tower");
             mapCircle.get(marker).setFillColor(Color.BLUE);
 
@@ -406,6 +411,8 @@ public class TowerTaker extends AppCompatActivity
     }
 
     public int getPoints() throws SQLException, ClassNotFoundException {
+        //Gets points from user account
+
         String strStatement = "select points from account where id = ?";
 
         PreparedStatement psSelect = Settings.getInstance().getConnection().prepareStatement(strStatement);
@@ -425,12 +432,15 @@ public class TowerTaker extends AppCompatActivity
     }
 
     public void addPoints(int add) throws SQLException, ClassNotFoundException {
+        //Adds points to user account
+
         String strStatement = "update account set points = points + ? where id = ?";
         PreparedStatement psUpdate = Settings.getInstance().getConnection().prepareStatement(strStatement);
         psUpdate.setInt(1, add);
         psUpdate.setInt(2, Settings.userid);
         psUpdate.executeUpdate();
 
+        //Update UI
         getPoints();
     }
 
@@ -448,13 +458,11 @@ public class TowerTaker extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
+        // Handle action bar item clicks here.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_lock_camera) {
+            //Manually change checkbox and set settings
             item.setChecked(!item.isChecked());
             setFreelook(!item.isChecked());
             return true;
@@ -483,7 +491,7 @@ public class TowerTaker extends AppCompatActivity
         int id = item.getItemId();
 
         if (id == R.id.nav_points) {
-            // Handle the camera action
+            //These are for display
         } else if (id == R.id.nav_towers) {
 
         }
@@ -505,9 +513,11 @@ public class TowerTaker extends AppCompatActivity
         if (rsSelect.next()) {
 
             int towers = rsSelect.getInt("towers");
+            //Update ui
             miTowers.setTitle(towers + " towers!");
             return towers;
         }
+
         miTowers.setTitle(0 + " towers!");
         return 0;
     }
